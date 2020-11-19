@@ -1,0 +1,44 @@
+// signal enhancer uses getPixel since MUCH faster vs ROI marchings
+//	input 16bit 2D raw grayscale stack, noisy in = noisy out
+//		for morphology and mask generation ONLY
+//	TOTALLY   NON-QUANTITAIVE  OUTPUT !!!!!!!!!
+//V.Bindokas, Univ. of Chicago, NOV 2012
+
+ti=getTitle();
+getDimensions(width, height, channels, slices, frames);
+w=width; h=height;
+if (frames > slices)s=frames; else s=slices;
+setPasteMode("Copy");
+run("Select None");
+run("Set Measurements...", "  mean standard min limit redirect=None decimal=3");
+
+setBatchMode(true);
+for (i=1; i<=s; i++){
+  setSlice(i);
+  run("Gaussian Blur...", "sigma=0.5"); //slay noise
+  List.setMeasurements;
+  N=List.getValue("Min");	//find floor
+  run("Subtract...", "value=N slice");
+  setAutoThreshold("Triangle dark");	//method makes a difference! Yen Li
+  run("Create Selection");
+  List.setMeasurements;
+  M=List.getValue("Mean");	//find signal level
+  S=List.getValue("StdDev");  
+  X=List.getValue("Max");
+  F=65534/X; 	//calc scaling factor to get to saturation, or set to 32bit and go big!
+  V=M-(1.5*S);	//threshold for boost is mean and 1.5 STDdev, or as desired
+  D=0.1;		//decrement value for non-signal, as desired
+run("Select All");
+  for (x=0; x<w; x++){	
+   for (y=0; y<h; y++){	//test if value > mean signal and boost if true, cut 33% if not
+	if (getPixel(x,y)>= V) setPixel(x,y,(getPixel(x,y)*F));
+	else setPixel(x,y,(getPixel(x,y)*D));
+	}
+    }
+}
+resetThreshold();
+//run("Gaussian Blur...", "sigma=0.5 stack");
+//next two lines are optionsal, they usually improve contrast
+//run("Unsharp Mask...", "radius=3 mask=0.40 stack");
+//run("Subtract Background...", "rolling=0.3 sliding stack");
+rename("stretched_"+ti);

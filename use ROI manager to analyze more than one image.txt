@@ -1,0 +1,64 @@
+// Loop the ROI manager to analyze more than one image.
+// Process and make binary your image to create ROIs (example, dapi stained nuclei) 
+// add the following code to create the list in ROI manager and then analyze additional
+// images.  Additional analysis can include drawing the ROI onto the analyzed image 
+// or not.  Set Measurements can be used to change the Results given.
+
+
+// The following code creates a list of ROIs in the ROI manager.  Code to process image
+//  into a binary image must be added above this section!!
+
+run("Analyze Particles...", "minimum=0 maximum=Infinity  show=Nothing record");    //     
+  o = nResults;;
+   for (i=0; i<o; i++) {
+     x = getResult('XStart', i);
+     y = getResult('YStart', i);
+     doWand(x,y);			// this step does the tracing, next builds the ROI list
+     roiManager("add");
+   }
+
+
+// This code will switch to a second window, measure within each ROI to create a results table and then 
+// draw the ROI onto the measured image + give each ROI a number. 
+// For measurement without ROI drawing, see the second batch of code below.
+// Image processing steps can be put in between the selectWindow command and the run("Set Measurements") command.  
+// Note the image selected should NOT be thresholded or binary
+
+
+selectWindow("                   ");     // Switches to second image for measurements within ROI boundaries, fill in name of image between " "
+run("Set Measurements...", "area mean centroid min integrated skewness limit display redirect=None decimal=0");  // change this to fit your needs
+
+n = roiManager("count");
+print(n);
+run("Colors...", "foreground=white background=black selection=yellow");
+  roiManager("deselect");
+
+for (i=0; i<n; i++) {
+     roiManager("select", i);
+	run("Measure");		  //this  measures pixel intensity in ROI
+	x = getResult('X');			// use centroids for labels
+	y = getResult('Y');
+	L = toString(i);			// create label from iteration
+   getVoxelSize(width, height, depth, unit);	//convert locale back to pixels
+    drawString(L, x/width, y/height);	//draw ROI label
+   roiManager("draw");		// draw outline on second image
+   roiManager("deselect");
+  }
+
+// This code will switch to a second window, measure within each ROI and give a results table but NOT draw the ROI
+// Image processing steps can be put in between the selectWindow command and the run("Set Measurements") command.  
+// Note the image selected should NOT be thresholded or binary
+
+selectWindow("blobs-1.gif");  // Switches to second image for measurements within ROI boundaries, fill in name of image between " "
+run("Set Measurements...", "area mean centroid min integrated skewness limit display redirect=None decimal=0");  // change this to fit your needs
+
+n = roiManager("count");
+print(n);
+run("Colors...", "foreground=white background=black selection=yellow");
+  roiManager("deselect");
+
+for (i=0; i<n; i++) {
+     roiManager("select", i);
+  run("Measure");					//this measures pixel intensity in ROI 
+     roiManager("deselect");
+  }

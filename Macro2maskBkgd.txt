@@ -1,0 +1,15 @@
+
+ns=nSlices();
+i=1;
+while (i<=ns){
+	setSlice(i);
+setAutoThreshold("Li dark");
+run("Create Selection");
+run("Enlarge...", "enlarge=-2 pixel");
+//setBackgroundColor(0, 0, 0);
+run("Clear Outside", "slice");
+run("Select None");
+run("Next Slice [>]");
+i=i+1;
+}
+resetThreshold();

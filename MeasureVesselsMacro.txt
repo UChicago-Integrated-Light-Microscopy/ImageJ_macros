@@ -1,0 +1,42 @@
+//macro to measure blood vessel density and characteristics
+//input expects dark vessels on light background
+//  macro overlays vessel segments and brach types as hyperstack layers
+// requires G.Landini's 'binary connectivity' plugin contained in:
+// http://www.dentistry.bham.ac.uk/landinig/software/morphology.zip
+// outputs area fraction, # line segments, # bifurcations, # trifurcations
+// V.Bindokas, PhD, Unvi of Chicago, July 2012
+
+ti=getTitle();
+if (bitDepth()==24) run("8-bit");
+run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+run("Bandpass Filter...", "filter_large=10 filter_small=0 suppress=None tolerance=5 autoscale saturate");
+run("Enhance Contrast", "saturated=0.35");
+run("Subtract Background...", "rolling=15 light sliding");
+
+setAutoThreshold("Huang");
+run("Create Mask");
+selectWindow("mask");
+rename("mask_"+ti);
+run("Invert");
+run("Set Measurements...", "area perimeter area_fraction limit display redirect=None decimal=3");
+setAutoThreshold("Huang");
+run("Analyze Particles...", "size=3-Infinity circularity=0.00-0.65 show=Masks summarize");
+run("Grays");
+run("Create Selection");
+run("Measure");
+run("Skeletonize");
+run("BinaryConnectivity ", "white");
+selectWindow("Mask of mask_"+ti);
+run("Select None");
+setThreshold(3, 3);
+run("Analyze Particles...", "size=3-Infinity circularity=0.00-1.00 show=Masks summarize");
+rename("ln");
+selectWindow("Mask of mask_"+ti);
+setThreshold(4, 4);
+run("Analyze Particles...", "size=1-Infinity circularity=0.00-1.00 show=Masks summarize");
+rename("bi");
+selectWindow("Mask of mask_"+ti);
+setThreshold(5, 5);
+run("Analyze Particles...", "size=1-Infinity circularity=0.00-1.00 show=Masks summarize");
+rename("tri");
+run("Merge Channels...", "c1=ln c2=bi c3=tri c4=&ti create ignore");

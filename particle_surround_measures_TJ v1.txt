@@ -1,0 +1,80 @@
+//macro to measure green channel brightness in area adjacent to red particles
+//blue, red, green order hyperstack expected as input; 
+//outputs overlaid score and map including ID numbers
+//	as always, verify this works for your needs!
+//Christine Labno modified from Vytas Bindokas, for T. Jordan of Randall lab, Univ of Chicago, April 2013
+
+ti=getTitle();
+run("Colors...", "foreground=white background=black selection=yellow roi=none");
+run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");   //run in pixel mode or you can use calibrations
+
+
+//run("Subtract Background...", "rolling=9 separate sliding");	//adjust as needed to get a flat illumination
+
+
+run("Hyperstack to Stack");
+setSlice(2);				//red dots layer
+run("Duplicate...", "title=dup-red");
+//optional denoise and clarification steps next 2 lines
+run("Subtract Background...", "rolling=9 separate");	//adjust as needed to get a flat illumination
+run("Gaussian Blur...", "sigma=2");                                    //adjust as needed to maximize red particle detection
+run("Unsharp Mask...", "radius=5 mask=0.60");               //adjust as needed to maximize red particle detection
+
+setAutoThreshold("Huang dark");                                      //autothreshold here, can be set as something else if red particle detection not working
+run("Convert to Mask");
+//run("Median...", "radius=3");	//smooth and minor fill defects
+
+run("Watershed");
+		//adjust min size as needed and/or to included edge items (default is exclude)
+run("Analyze Particles...", "size=10-Infinity circularity=0.00-1.00 show=Nothing exclude record add slice");
+close();
+nuc=roiManager("count");
+print(ti);
+print("number particles: ",nuc);
+nG=0; 		//reset counters
+
+setBatchMode(true);		// uncomment this line to go faster
+
+for (i=0; i<nuc; i++){
+selectWindow(ti);
+run("Select None");
+run("Duplicate...", "title=dup-green");  //must do entire image to get the roi to ransfer back to right place
+roiManager("Select", i);
+run("Enlarge...", "enlarge=2");		//adjust value as needed to change distance from particle needed to score as positive for green; pos=outward
+run("Clear Outside");
+run("Fill");
+roiManager("Select", 0);
+run("Clear");
+setThreshold(1494, 16535);
+run("Create Selection");
+close();
+setSlice(3);
+run("Restore Selection");
+getStatistics(area, mean, min, max);
+G=mean;
+str=""; 
+    	//this line below scores the particles as surrounded by green or not; adjust the min intensity as needed
+if (G>2000) {str=str+"G"; nG=nG+1;}   //mean green = 2000 grays to be positive
+
+
+print("cell, G, score: ",i+1,G,str);
+getSelectionBounds(x, y, width, height);
+selectWindow(ti);
+drawString(str, x-3, y+30);
+}
+roiManager("Deselect");
+
+//bitmap label option next 2 lines
+//setForegroundColor(0, 255, 255);
+//roiManager("Label");			//this has ROI numbers (that can cover scores)
+
+//overlay option next 2 lines
+run("Overlay Options...", "stroke=Cyan width=1 fill=none");  //can be changed after the fact in Image --> Overlay-->Overlay options
+run("From ROI Manager");			//this does only outlines in nondestructive mode, can alter color
+
+selectWindow("ROI Manager");
+run("Close");
+selectWindow(ti);
+//close();
+print("num cells, num green,: ",nuc,nG);
+setForegroundColor(255, 255, 255);

@@ -1,0 +1,41 @@
+
+//Expects a .tif stack as input, with images in the order green, blue, DIC.  Creates a montage with green, blue, DIC and green/blue overlay images.
+//Can be modified to fit your needs.  
+
+
+ t=getTitle();
+    s=lastIndexOf(t, ' ');
+    t=substring(t, 0,s);
+
+rename("Stack");
+
+setSlice(1);
+run("Duplicate...", "title=Stack-1");
+run("Green");
+run("RGB Color");
+selectWindow("Stack");
+
+setSlice(2);
+run("Duplicate...", "title=Stack-2");
+run("Blue");
+run("RGB Color");
+selectWindow("Stack");
+
+setSlice(3);
+run("Duplicate...", "title=Stack-3");
+
+run("Merge Channels...", "c2=Stack-1 c3=Stack-2 keep");
+run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width=0.4 pixel_height=0.4 voxel_depth=0.4 frame=[0 sec] origin=0,0");
+run("Scale Bar...", "width=20 height=5 font=24 color=White background=None location=[Lower Right] hide");
+selectWindow("Stack");
+
+
+selectWindow("Stack");
+close();
+
+run("Images to Stack", "name=Stack2 title=[] use");
+run("Make Montage...", "columns=4 rows=1 scale=0.50 first=1 last=4 increment=1 border=5 font=12");
+rename(t+' montage');
+selectWindow("Stack2");
+close();
+
